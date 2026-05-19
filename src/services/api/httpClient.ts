@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { buildSignatureHeaders, signingEnabled } from '@/utils/requestSigning';
+
 const DEFAULT_API_BASE_URL = 'http://localhost:3001';
 const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL;
 const EXPO_PUBLIC_NETWORK_DEBUG = process.env.EXPO_PUBLIC_NETWORK_DEBUG;
@@ -130,6 +132,12 @@ export async function httpClient<T>(
     // En nativo, agregar header para ngrok
     if (Platform.OS !== 'web' && Platform.OS !== 'android' && Platform.OS !== 'ios') {
       headers['ngrok-skip-browser-warning'] = '69420';
+    }
+
+    if (signingEnabled) {
+      const sigHeaders = await buildSignatureHeaders(method, path, body ?? null);
+      headers['X-Signature'] = sigHeaders['X-Signature'];
+      headers['X-Timestamp'] = sigHeaders['X-Timestamp'];
     }
 
     response = await fetch(requestUrl, {
