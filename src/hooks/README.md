@@ -1,0 +1,1 @@
+This folder stores reusable custom hooks (for example: useAuth, useMissions).

@@ -1,0 +1,1 @@
+This folder stores shared app state (context or lightweight store).

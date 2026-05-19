@@ -1,0 +1,1 @@
+This module will contain notification features (services, hooks, and UI components).
