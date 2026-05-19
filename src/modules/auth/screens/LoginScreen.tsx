@@ -153,8 +153,12 @@ export function LoginScreen() {
     setError('');
 
     try {
-      const matched = await loginWithGoogle(idToken);
-      router.replace(matched.redirectTo as never);
+      const result = await loginWithGoogle(idToken);
+      if ('requiresRoleSelection' in result) {
+        router.replace('/(auth)/google-role-select' as never);
+      } else {
+        router.replace(result.redirectTo as never);
+      }
     } catch (loginError) {
       setError(getLoginErrorMessage(loginError));
     } finally {
