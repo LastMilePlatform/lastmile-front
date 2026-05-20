@@ -1,4 +1,4 @@
-name: Frontend Verification
+name: Frontend CI + SonarQube
 
 on:
   push:
@@ -10,14 +10,14 @@ on:
 
 jobs:
   verify:
-    name: Verify Frontend
+    name: Verify & Analyze Frontend
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,8 +31,10 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
-      - name: Optional SonarQube Scan (future)
-        if: ${{ false }}
+      - name: Run tests with coverage
+        run: npm run test:cov
+
+      - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
