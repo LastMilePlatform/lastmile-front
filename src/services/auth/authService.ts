@@ -14,6 +14,10 @@ export type AuthSession = {
   };
 };
 
+export type GoogleRoleRequired = {
+  requiresRoleSelection: true;
+};
+
 export const authService = {
   login(payload: LoginPayload) {
     return httpClient<AuthSession>('/auth/login', {
@@ -22,10 +26,10 @@ export const authService = {
     });
   },
 
-  loginWithGoogle(accessToken: string) {
-    return httpClient<AuthSession>('/auth/google', {
+  loginWithGoogle(accessToken: string, role?: 'donor' | 'volunteer') {
+    return httpClient<AuthSession | GoogleRoleRequired>('/auth/google', {
       method: 'POST',
-      body: { accessToken },
+      body: { accessToken, ...(role ? { role } : {}) },
     });
   },
 };
