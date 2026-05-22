@@ -60,13 +60,27 @@ function getBrowserHost() {
 }
 
 function resolveApiBaseUrl() {
-  // En web: usar la URL configurada para producción cuando exista.
+  const configuredUrl = EXPO_PUBLIC_API_URL ?? DEFAULT_API_BASE_URL;
+
+  // En web: reemplazar localhost con el host real del browser si aplica.
   if (Platform.OS === 'web') {
-    return EXPO_PUBLIC_API_URL ?? DEFAULT_API_BASE_URL;
+    try {
+      const parsed = new URL(configuredUrl);
+      const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+      if (isLocalhost) {
+        const browserHost = getBrowserHost();
+        if (browserHost && browserHost !== 'localhost' && browserHost !== '127.0.0.1') {
+          parsed.hostname = browserHost;
+          return parsed.toString().replace(/\/$/, '');
+        }
+      }
+    } catch {
+      return configuredUrl;
+    }
+    return configuredUrl;
   }
 
   // En nativo: usar la variable de entorno (ngrok) o el default
-  const configuredUrl = EXPO_PUBLIC_API_URL ?? DEFAULT_API_BASE_URL;
 
   try {
     const parsed = new URL(configuredUrl);
