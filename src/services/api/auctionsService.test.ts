@@ -1,4 +1,14 @@
-import { buyAuction, createCampaignAuction, getCampaignAuctions } from './auctionsService';
+import {
+  buyAuction,
+  createAuction,
+  createCampaignAuction,
+  getAuction,
+  getAuctionBids,
+  getAuctions,
+  getCampaignAuctions,
+  placeBid,
+  startAuction,
+} from './auctionsService';
 import { httpClient } from './httpClient';
 
 jest.mock('./httpClient', () => ({
@@ -49,6 +59,63 @@ describe('auctionsService', () => {
     expect(mockedHttpClient).toHaveBeenCalledWith('/auctions/44/buy', {
       method: 'POST',
       body: payload,
+    });
+  });
+
+  it('gets all auctions without status filter', async () => {
+    mockedHttpClient.mockResolvedValueOnce({ data: [] } as never);
+    await getAuctions();
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions');
+  });
+
+  it('gets auctions with status filter', async () => {
+    mockedHttpClient.mockResolvedValueOnce({ data: [] } as never);
+    await getAuctions('active');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions?status=active');
+  });
+
+  it('gets a single auction by id', async () => {
+    mockedHttpClient.mockResolvedValueOnce({ id: 5 } as never);
+    await getAuction(5);
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions/5');
+  });
+
+  it('creates an auction', async () => {
+    const payload = { itemName: 'Laptop', initialPrice: 1000, durationMinutes: 60 };
+    mockedHttpClient.mockResolvedValueOnce({ id: 7 } as never);
+    await createAuction(payload, 'tok');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions', {
+      method: 'POST',
+      body: payload,
+      token: 'tok',
+    });
+  });
+
+  it('starts an auction', async () => {
+    mockedHttpClient.mockResolvedValueOnce({ id: 7 } as never);
+    await startAuction(7, 'tok');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions/7/start', {
+      method: 'POST',
+      token: 'tok',
+    });
+  });
+
+  it('gets auction bids', async () => {
+    mockedHttpClient.mockResolvedValueOnce([] as never);
+    await getAuctionBids(7, 'tok');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions/7/bids', {
+      token: 'tok',
+    });
+  });
+
+  it('places a bid', async () => {
+    const payload = { userId: 3, amount: 500 };
+    mockedHttpClient.mockResolvedValueOnce({ id: 1 } as never);
+    await placeBid(7, payload, 'tok');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auctions/7/bids', {
+      method: 'POST',
+      body: payload,
+      token: 'tok',
     });
   });
 });
