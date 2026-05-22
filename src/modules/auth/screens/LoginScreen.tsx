@@ -3,7 +3,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,6 +26,25 @@ import Animated, {
 import { useAuthSession } from '@/modules/auth/context/AuthSessionContext';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// COOP fallback: Google's auth page sets COOP:same-origin, which severs window.opener
+// in the popup so maybeCompleteAuthSession() can't postMessage back to the parent.
+// We detect auth params in the URL hash and broadcast them via BroadcastChannel instead.
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  (() => {
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = params.get('id_token') ?? params.get('access_token');
+    if (!token) return;
+    try {
+      const ch = new BroadcastChannel('expo_google_auth');
+      ch.postMessage({ token });
+      ch.close();
+    } catch {
+      try { window.opener?.postMessage?.({ type: 'expo-auth-session', token }, '*'); } catch { /* ignore */ }
+    }
+    window.close();
+  })();
+}
 
 const HERO_IMAGES = [
   require('../../../../assets/auth/login-hero.jpg'),
@@ -153,8 +172,12 @@ export function LoginScreen() {
     setError('');
 
     try {
-      const matched = await loginWithGoogle(idToken);
-      router.replace(matched.redirectTo as never);
+      const result = await loginWithGoogle(idToken);
+      if ('requiresRoleSelection' in result) {
+        router.replace('/(auth)/google-role-select' as never);
+      } else {
+        router.replace(result.redirectTo as never);
+      }
     } catch (loginError) {
       setError(getLoginErrorMessage(loginError));
     } finally {
@@ -168,6 +191,23 @@ export function LoginScreen() {
       router.replace(currentUser.redirectTo as never);
     }
   }, [currentUser, router]);
+
+  // COOP fallback: receive token broadcast from the OAuth popup
+  const handleGoogleLoginRef = useRef(handleGoogleLogin);
+  useEffect(() => { handleGoogleLoginRef.current = handleGoogleLogin; });
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('expo_google_auth');
+      channel.onmessage = (e: MessageEvent<{ token?: string }>) => {
+        const { token } = e.data;
+        if (token) void handleGoogleLoginRef.current(token);
+      };
+    } catch { /* BroadcastChannel not supported */ }
+    return () => channel?.close();
+  }, []);
 
   useEffect(() => {
     if (!isDesktopWeb || HERO_IMAGES.length <= 1) {
