@@ -17,7 +17,7 @@ describe('usersService', () => {
 
     await getUsers();
 
-    expect(mockedHttpClient).toHaveBeenCalledWith('/users?page=1&limit=100');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/users?page=1&limit=100', { token: undefined });
   });
 
   it('gets users with custom pagination', async () => {
@@ -25,6 +25,6 @@ describe('usersService', () => {
 
     await getUsers(3, 10);
 
-    expect(mockedHttpClient).toHaveBeenCalledWith('/users?page=3&limit=10');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/users?page=3&limit=10', { token: undefined });
   });
 });
