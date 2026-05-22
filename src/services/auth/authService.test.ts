@@ -7,6 +7,29 @@ jest.mock('@/services/api/httpClient', () => ({
 
 const mockedHttpClient = httpClient as jest.MockedFunction<typeof httpClient>;
 
+describe('authService', () => {
+  it('loginWithGoogle sends token and role', async () => {
+    mockedHttpClient.mockResolvedValueOnce({
+      accessToken: 'tok',
+      user: { id: 2, email: 'v@lastmile.com', role: 'volunteer' },
+    });
+    await authService.loginWithGoogle('google-token', 'volunteer');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auth/google', {
+      method: 'POST',
+      body: { accessToken: 'google-token', role: 'volunteer' },
+    });
+  });
+
+  it('loginWithGoogle sends token without role', async () => {
+    mockedHttpClient.mockResolvedValueOnce({ requiresRoleSelection: true });
+    await authService.loginWithGoogle('google-token');
+    expect(mockedHttpClient).toHaveBeenCalledWith('/auth/google', {
+      method: 'POST',
+      body: { accessToken: 'google-token' },
+    });
+  });
+});
+
 describe('authService.login', () => {
   it('sends expected endpoint and payload', async () => {
     mockedHttpClient.mockResolvedValueOnce({
