@@ -414,14 +414,23 @@ export function connectTrackingSocket(auth: TrackingAuth = {}, nextHandlers: Tra
   });
 
   // Campaign-level volunteer tracking
+  // Backend emits { campaignId, volunteers: [...] } — extract the array before processing.
   socket.on('campaign.volunteers.snapshot', (payload: unknown) => {
-    if (!payload || !Array.isArray(payload)) {
+    if (!payload || typeof payload !== 'object') {
+      return;
+    }
+
+    const rawList = Array.isArray(payload)
+      ? payload
+      : ((payload as Record<string, unknown>).volunteers as unknown[] | undefined);
+
+    if (!Array.isArray(rawList)) {
       return;
     }
 
     const points: Array<TrackingLocationUpdatePayload & { volunteerId?: number }> = [];
 
-    for (const item of payload as unknown[] as Record<string, unknown>[]) {
+    for (const item of rawList as Record<string, unknown>[]) {
       const p = normalizeVolunteerPoint(item);
 
       if (p) {
